@@ -71,7 +71,7 @@ class ExplicitMF:
         self.n_factors = n_factors  
         self.user_means = users_mean
         
-    def fit(self, train, test, lr):
+    def fit(self, train, test):
         """
         pass in training and testing at the same time to record
         model convergence, assuming both dataset is in the form
@@ -88,8 +88,8 @@ class ExplicitMF:
         self.test_mse_record  = []
         self.train_mse_record = []   
         for _ in range(self.n_iters):
-            self.user_factors = self._als_step(train, self.user_factors, self.item_factors, lr)
-            self.item_factors = self._als_step(train.T, self.item_factors, self.user_factors, lr) 
+            self.user_factors = self._als_step(train, self.user_factors, self.item_factors)
+            self.item_factors = self._als_step(train.T, self.item_factors, self.user_factors) 
 
             # self.user_factors = s_f
             # self.item_factors = i_f
