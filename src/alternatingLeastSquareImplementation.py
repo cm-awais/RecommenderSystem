@@ -4,7 +4,9 @@ from sklearn.metrics import mean_squared_error
 
 trainPath = "../data/train.csv"
 
-test, train = loadData(trainPath)
+data_df = loadData(trainPath)
+
+
 
 class ExplicitMF:
     """
@@ -27,9 +29,9 @@ class ExplicitMF:
     """
 
     def __init__(self, n_iters, n_factors, reg):
-        self.reg = reg
         self.n_iters = n_iters
         self.n_factors = n_factors  
+        self.reg = reg
         
     def fit(self, train, test, lr):
         """
@@ -60,14 +62,14 @@ class ExplicitMF:
         
         return self    
     
-    def _als_step(self, ratings, solve_vecs, fixed_vecs, lr):
+    def _als_step(self, ratings, solve_vecs, fixed_vecs):
         """
         when updating the user matrix,
         the item matrix is the fixed vector and vice versa
         """
 
-        alpha = lr
-        A = fixed_vecs.T.dot(fixed_vecs) + np.eye(self.n_factors) * self.reg * alpha
+#         alpha = lr
+        A = fixed_vecs.T.dot(fixed_vecs) + np.eye(self.n_factors) * self.reg #* alpha
         b = ratings.dot(fixed_vecs) 
         A_inv = np.linalg.inv(A)
         solve_vecs = b.dot(A_inv) 
@@ -85,5 +87,5 @@ class ExplicitMF:
         mse = mean_squared_error(y_true[mask], y_pred[mask])
         return mse
 
-als = ExplicitMF(n_iters = 20, n_factors = 50, reg = 0.0001)
-als.fit(train, test, lr = 0.0001)
+als = ExplicitMF(n_iters = 100, n_factors = 50, reg = 0.0001)
+als.fit(train, test)
