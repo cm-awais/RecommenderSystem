@@ -130,7 +130,7 @@ class ExplicitMF:
 
 trainPath = "../data/train.csv"
 
-R_df = loadData(trainPath)
+R_df, traindf = loadData(trainPath)
 
 users_mean=np.array(R_df.mean(axis=1))
 R_demeaned=R_df.sub(R_df.mean(axis=1), axis=0)
