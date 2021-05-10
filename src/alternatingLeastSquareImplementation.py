@@ -1,6 +1,7 @@
 from scripts.dataLoader import loadData
 import numpy as np
 from sklearn.metrics import mean_squared_error
+import pandas as pd
 
 
 class ExplicitMF:
@@ -112,3 +113,52 @@ test, train = train_test_split(R_demeaned)
 
 als = ExplicitMF(n_iters = 20, n_factors = 50, reg = 0.0001, users_mean= users_mean)
 als.fit(train, test)
+
+
+def recommend_movies(predictions_df, userID, movies_df, original_ratings_df, num_recommendations=5):
+    
+    # movies_df = pd.DataFrame(movies_df, columns = ['movieId'])
+
+    # Get and sort the user's predictions
+    user_row_number = userID - 1 # UserID starts at 1, not 0
+    sorted_user_predictions = predictions_df.iloc[user_row_number].sort_values(ascending=False)
+    
+    # Get the user's data and merge in the movie information.
+    user_data = original_ratings_df[original_ratings_df.userId == (userID)]
+    user_full = (user_data.merge(movies_df, how = 'left', left_on = 'movieId', right_on = 'movieId').
+                     sort_values(['rating'], ascending=False)
+                 )
+    # user_row_number = userID - 1 # UserID starts at 1, not 0
+    # sorted_user_predictions = sorted(predictions_df[user_row_number], reverse=True) # predictions_df.iloc[user_row_number].sort_values(ascending=False)
+
+    # print(len(sorted_user_predictions))
+    
+    # # Get the user's data and merge in the movie information.
+    # user_data = original_ratings_df[original_ratings_df.userId == (userID)]
+    # user_full = (user_data.merge(movies_df, how = 'left', left_on = 'movieId', right_on = 'movieId').
+    #                  sort_values(['rating'], ascending=False)
+    #              )
+    
+    print ('User {0} has already rated {1} movies.'.format(userID, user_full.shape[0]))
+    print ('Recommending the highest {0} predicted ratings movies not already rated.'.format(num_recommendations))
+    
+    # Recommend the highest predicted rating movies that the user hasn't seen yet.
+    recommendations = (movies_df[~movies_df['movieId'].isin(user_full['movieId'])].
+         merge(pd.DataFrame(sorted_user_predictions).reset_index(), how = 'left',
+               left_on = 'movieId',
+               right_on = 'movieId').
+         rename(columns = {user_row_number: 'Predictions'}).
+         sort_values('Predictions', ascending = False).
+                       iloc[:num_recommendations, :-1]
+                      )
+
+    return user_full, recommendations
+
+preds_df = pd.DataFrame(preds, columns = R_df.columns)
+itemIds = pd.DataFrame(R_df.columns.values, columns=['movieId'])
+
+user = 4371
+
+already_rated, predictions = recommend_movies(preds_df, user, itemIds, traindf, 5)
+
+print(predictions)
