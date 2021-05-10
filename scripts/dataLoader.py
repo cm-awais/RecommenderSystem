@@ -5,4 +5,4 @@ def loadData(path):
 
   df_loaded = df.pivot(index = 'userId', columns ='movieId', values = 'rating').fillna(0)
 
-  return df_loaded
+  return df_loaded, df
