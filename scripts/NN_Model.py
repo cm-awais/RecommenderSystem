@@ -78,19 +78,19 @@ class EmbeddingNet(nn.Module):
 
     Args:
 
-        n_users:            
+        n_users:
             Number of unique users in the dataset.
-        n_movies: 
+        n_movies:
             Number of unique movies in the dataset.
-        n_factors: 
+        n_factors:
             Number of columns in the embeddings matrix.
-        embedding_dropout: 
+        embedding_dropout:
             Dropout rate to apply right after embeddings layer.
         hidden:
-            A single integer or a list of integers defining the number of 
+            A single integer or a list of integers defining the number of
             units in hidden layer(s).
-        dropouts: 
-            A single integer or a list of integers defining the dropout 
+        dropouts:
+            A single integer or a list of integers defining the dropout
             layers rates applyied right after each of hidden layers.
 
     """
@@ -105,10 +105,10 @@ class EmbeddingNet(nn.Module):
 
         def gen_layers(n_in):
             """
-            A generator that yields a sequence of hidden layers and 
+            A generator that yields a sequence of hidden layers and
             their activations/dropouts.
 
-            Note that the function captures `hidden` and `dropouts` 
+            Note that the function captures `hidden` and `dropouts`
             values from the outer scope.
             """
             nonlocal hidden, dropouts
@@ -214,32 +214,37 @@ def get_list(n):
         return list(n)
     raise TypeError('layers configuraiton should be a single number or a list of numbers')
 
+def compute_mse(y_true, y_pred):
+    """ignore zero terms prior to comparing the mse"""
+    mask = np.nonzero(y_true)
+    mse = mean_squared_error(y_true[mask], y_pred[mask])
+    return mse
 
 def runNNModel(R_df, traindf):
     (n, m), (X, y), _ = create_dataset(traindf)
     print(f'Embeddings: {n} users, {m} movies')
     print(f'Dataset shape: {X.shape}')
     print(f'Target shape: {y.shape}')
-    
+
     for x_batch, y_batch in batches(X, y, bs=4):
         print(x_batch)
         print(y_batch)
         break
-    
+
     RANDOM_STATE = 1
     set_random_seed(RANDOM_STATE)
-    
+
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=RANDOM_STATE)
     datasets = {'train': (X_train, y_train), 'val': (X_valid, y_valid)}
     dataset_sizes = {'train': len(X_train), 'val': len(X_valid)}
-    
+
     minmax = (0.5, 5.0)
-    
+
     net = EmbeddingNet(
         n_users=n, n_movies=m,
         n_factors=150, hidden=[500, 500, 500],
         embedding_dropout=0.05, dropouts=[0.5, 0.5, 0.25])
-    
+
     lr = 1e-3
     wd = 1e-5
     bs = 2000
@@ -250,18 +255,18 @@ def runNNModel(R_df, traindf):
     best_weights = None
     history = []
     lr_history = []
-    
+
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    
+
     net.to(device)
     criterion = nn.MSELoss(reduction='sum')
     optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=wd)
     iterations_per_epoch = int(math.ceil(dataset_sizes['train'] // bs))
     scheduler = CyclicLR(optimizer, cosine(t_max=iterations_per_epoch * 2, eta_min=lr / 10))
-    
+
     for epoch in range(n_epochs):
         stats = {'epoch': epoch + 1, 'total': n_epochs}
-    
+
         for phase in ('train', 'val'):
             training = phase == 'train'
             running_loss = 0.0
@@ -274,19 +279,19 @@ def runNNModel(R_df, traindf):
                 with torch.set_grad_enabled(training):
                     outputs = net(x_batch[:, 0], x_batch[:, 1], minmax)
                     loss = criterion(outputs, y_batch)
-    
+
                     # don't update weights and rates when in 'val' phase
                     if training:
                         scheduler.step()
                         loss.backward()
                         optimizer.step()
                         lr_history.extend(scheduler.get_lr())
-    
+
                 running_loss += loss.item()
-    
+
             epoch_loss = running_loss / dataset_sizes[phase]
             stats[phase] = epoch_loss
-    
+
             # early stopping: save weights of the best model so far
             if phase == 'val':
                 if epoch_loss < best_loss:
@@ -296,22 +301,33 @@ def runNNModel(R_df, traindf):
                     no_improvements = 0
                 else:
                     no_improvements += 1
-    
+
         history.append(stats)
         print('[{epoch:03d}/{total:03d}] train: {train:.4f} - val: {val:.4f}'.format(**stats))
         if no_improvements >= patience:
             print('early stopping after epoch {epoch:03d}'.format(**stats))
             break
-    
+
     net.load_state_dict(best_weights)
-    
-    groud_truth.extend(y_batch.tolist())
-    predictions.extend(outputs.tolist())
-    
+
+    groud_truth, predictions = [], []
+
+    with torch.no_grad():
+        for batch in batches(*datasets['val'], shuffle=False, bs=bs):
+            x_batch, y_batch = [b.to(device) for b in batch]
+            outputs = net(x_batch[:, 0], x_batch[:, 1], minmax)
+            # print(len(outputs))
+            groud_truth.extend(y_batch.tolist())
+            predictions.extend(outputs.tolist())
+
     # preds_df = pd.DataFrame(predictions, columns = R_df.columns)
-    
+
     groud_truth = np.asarray(groud_truth).ravel()
     predictions = np.asarray(predictions).ravel()
-    
+
     final_loss = np.sqrt(np.mean((np.array(predictions) - np.array(groud_truth)) ** 2))
     print(f'Final RMSE: {final_loss:.4f}')
+    mse_loss = compute_mse(predictions, groud_truth)
+
+    return final_loss, mse_loss
+
