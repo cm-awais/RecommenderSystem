@@ -158,5 +158,10 @@ def RunEALS(R_df, traindf):
     user = 4371
 
     already_rated, predictions = recommend_movies(preds_df, user, itemIds, traindf, 5)
+    
+    test_loss = als.test_mse_record[-1]
+    train_loss = als.train_mse_record[-1]
 
     print(predictions)
+    
+    return test_loss, train_loss
