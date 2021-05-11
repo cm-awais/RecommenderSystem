@@ -140,7 +140,7 @@ def train_test_split(ratings):
     assert (np.all((train * test) == 0))
     return train, test
 
-def RunEALS(r_df, traindf):
+def RunEALS(R_df, traindf):
     users_mean = np.array(R_df.mean(axis=1))
     R_demeaned = R_df.sub(R_df.mean(axis=1), axis=0)
     R_demeaned = R_demeaned.fillna(0).values
