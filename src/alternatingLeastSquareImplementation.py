@@ -180,5 +180,5 @@ trainPath = "../data/train.csv"
 
 R_df, traindf = loadData(trainPath)
 
-RunEALS(r_df=R_df, traindf=traindf)
+RunEALS(R_df, traindf)
 runNNModel(R_df, traindf)
