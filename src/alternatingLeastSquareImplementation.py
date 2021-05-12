@@ -10,7 +10,7 @@ def comparison(NNModelloss, explicitModelLoss, NNModelTime, explicitModelTime):
   print("The mse test loss of Hand crafted MF model is ",explicitModelLoss)
 
   print("Time Taken for NCF Model is ", NNModelTime)
-  print("Time Taken for NCF Model is ", explicitModelTime)
+  print("Time Taken for Hand crafted MF Model is ", explicitModelTime)
 
 
 trainPath = "../data/train.csv"
