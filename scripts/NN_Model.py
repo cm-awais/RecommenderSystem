@@ -222,14 +222,14 @@ def compute_mse(y_true, y_pred):
 
 def runNNModel(R_df, traindf):
     (n, m), (X, y), _ = create_dataset(traindf)
-    print(f'Embeddings: {n} users, {m} movies')
-    print(f'Dataset shape: {X.shape}')
-    print(f'Target shape: {y.shape}')
+#     print(f'Embeddings: {n} users, {m} movies')
+#     print(f'Dataset shape: {X.shape}')
+#     print(f'Target shape: {y.shape}')
 
-    for x_batch, y_batch in batches(X, y, bs=4):
-        print(x_batch)
-        print(y_batch)
-        break
+#     for x_batch, y_batch in batches(X, y, bs=4):
+#         print(x_batch)
+#         print(y_batch)
+#         break
 
     RANDOM_STATE = 1
     set_random_seed(RANDOM_STATE)
@@ -328,6 +328,7 @@ def runNNModel(R_df, traindf):
     final_loss = np.sqrt(np.mean((np.array(predictions) - np.array(groud_truth)) ** 2))
     print(f'Final RMSE: {final_loss:.4f}')
     mse_loss = compute_mse(predictions, groud_truth)
+    print(f'Final MSE: {mse_loss:.4f}')
 
     return final_loss, mse_loss
 
